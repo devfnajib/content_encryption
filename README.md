@@ -16,8 +16,6 @@
 
 1. *Windows*: 
      In command line (CMD) window, run
-     `flask run --port <port>`
+     `Python start.py --port <port>`
 
-2. Once the Flask server is running, you can use client.py to send a request. Please make sure that the port specified in **client.py** is the same where app is running.
-
-3. You can also use Postman or other ways to send an HTTP requests to the server.
+2. You can also use Postman or other ways to send an HTTP requests to the server.
