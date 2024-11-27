@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from app.models import db, ProtectionSystem, Content
-from app.encryptions import encrypt, decrypt, generate_encryption_key
+from app.encryptions import encrypt, generate_encryption_key
 
 
 bp = Blueprint('contents', __name__)

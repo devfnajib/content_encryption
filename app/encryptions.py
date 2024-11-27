@@ -1,8 +1,8 @@
 import json
-from base64 import b64encode
+from base64 import b64encode, b64decode
 
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
+from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 
 from app.exceptions import InvalidEncryptionMode, DecryptionException
@@ -110,15 +110,83 @@ def encrypt(content, encryption_mode, encryption_key):
         return ecb_encryption(content=content, encryption_mode=encryption_mode, encryption_key=encryption_key)
 
 
-def decrypt(encryption_key, encryption_mode, nonce, ciphertext, tag):
-    cipher = AES.new(encryption_key, encryption_mode, nonce=nonce)
-    plaintext = cipher.decrypt(ciphertext)
-
+def modern_decryption(encryption_key, encryption_mode, encryption_payload):
     try:
-        cipher.verify(tag)
-        return plaintext
-    except ValueError:
-        raise DecryptionException(error_message='Key incorrect or message corrupted')
+        b64 = json.loads(encryption_payload)
+        json_k = ['nonce', 'header', 'ciphertext', 'tag']
+        jv = {k: b64decode(b64[k]) for k in json_k}
+
+        cipher = AES.new(encryption_key, encryption_mode, nonce=jv['nonce'])
+        cipher.update(jv['header'])
+        plaintext = cipher.decrypt_and_verify(jv['ciphertext'], jv['tag'])
+        return plaintext.decode('utf-8')
+    except (ValueError, KeyError):
+        raise Exception('Unable to decrypt.')
+
+
+def siv_decryption(encryption_key, encryption_mode, encryption_payload):
+    try:
+        b64 = json.loads(encryption_payload)
+        iv = b64decode(b64['iv'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(encryption_key, encryption_mode, iv)
+        pt = unpad(cipher.decrypt(ct), AES.block_size)
+        return pt.decode('utf-8')
+    except (ValueError, KeyError):
+        raise Exception('Unable to decrypt.')
+
+
+def classic_decryption(encryption_key, encryption_mode, encryption_payload):
+    try:
+        b64 = json.loads(encryption_payload)
+        iv = b64decode(b64['iv'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(encryption_key, encryption_mode, iv)
+        pt = unpad(cipher.decrypt(ct), AES.block_size)
+        return pt.decode('utf-8')
+    except (ValueError, KeyError):
+        raise Exception('Unable to decrypt.')
+
+
+def ctr_decryption(encryption_key, encryption_mode, encryption_payload):
+    try:
+        b64 = json.loads(encryption_payload)
+        nonce = b64decode(b64['nonce'])
+        ct = b64decode(b64['ciphertext'])
+        cipher = AES.new(encryption_key, encryption_mode, nonce=nonce)
+        pt = cipher.decrypt(ct)
+        return pt.decode('utf-8')
+    except (ValueError, KeyError):
+        raise Exception('Unable to decrypt.')
+
+
+def ecb_decryption(encryption_key, encryption_mode, encryption_payload):
+    try:
+        b64 = json.loads(encryption_payload)
+        ciphertext = b64decode(b64['ciphertext'])
+        decipher = AES.new(encryption_key, encryption_mode)
+        msg_dec = decipher.decrypt(ciphertext)
+        return unpad(msg_dec, AES.block_size).decode('utf-8')
+    except (ValueError, KeyError):
+        raise Exception('Unable to decrypt.')
+
+
+def decrypt(encryption_key, encryption_mode, encryption_payload):
+    if encryption_mode in [AES.MODE_CCM, AES.MODE_EAX, AES.MODE_GCM, AES.MODE_OCB]:
+        return modern_decryption(encryption_key=encryption_key, encryption_mode=encryption_mode,
+                                 encryption_payload=encryption_payload)
+    elif encryption_mode == AES.MODE_SIV:
+        return siv_decryption(encryption_key=encryption_key, encryption_mode=encryption_mode,
+                              encryption_payload=encryption_payload)
+    elif encryption_mode in [AES.MODE_CBC, AES.MODE_CFB, AES.MODE_OFB, AES.MODE_OPENPGP]:
+        return classic_decryption(encryption_key=encryption_key, encryption_mode=encryption_mode,
+                                  encryption_payload=encryption_payload)
+    elif encryption_mode == AES.MODE_CTR:
+        return ctr_decryption(encryption_key=encryption_key, encryption_mode=encryption_mode,
+                              encryption_payload=encryption_payload)
+    elif encryption_mode == AES.MODE_ECB:
+        return ecb_decryption(encryption_key=encryption_key, encryption_mode=encryption_mode,
+                              encryption_payload=encryption_payload)
 
 
 def generate_encryption_key(size=32):
