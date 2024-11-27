@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from configs import DB_CONNECTION_STRING
 from app.models import db
 from app.routes_protection_systems import bp as protection_systems_bp
+from app.routes_devices import bp as devices_bp
 
 
 def create_application():
@@ -12,5 +13,6 @@ def create_application():
     db.init_app(app)
     migrate = Migrate(app, db)
     app.register_blueprint(protection_systems_bp)
+    app.register_blueprint(devices_bp)
 
     return app
