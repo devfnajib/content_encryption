@@ -31,10 +31,10 @@ class Device(db.Model):
 class Content(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     protection_system = db.Column(db.Integer, db.ForeignKey('protection_system.id'), nullable=False)
-    encryption_key = db.Column(db.String(100), nullable=False)
-    encrypted_payload = db.Column(db.String(10000), nullable=False)  # no char limit
+    encryption_key = db.Column(db.LargeBinary(256), nullable=False)
+    encrypted_json = db.Column(db.JSON, nullable=False)
 
     def __init__(self, protection_system, encryption_key, encrypted_payload):
         self.protection_system = protection_system
         self.encryption_key = encryption_key
-        self.encrypted_payload = encrypted_payload
+        self.encrypted_json = encrypted_payload

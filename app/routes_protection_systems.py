@@ -8,16 +8,6 @@ from app.models import db, ProtectionSystem
 bp = Blueprint('protection_systems', __name__)
 
 
-@bp.route("/")
-def index():
-    data = {
-        'status': 'OK'
-    }
-
-    response = (jsonify(data), 200)
-    return response
-
-
 @bp.route('/protection_systems', methods=['POST'])
 def create_protection_system():
     request_payload = request.get_json()
