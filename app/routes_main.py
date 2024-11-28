@@ -27,7 +27,7 @@ def get_content():
     device_id = request_payload.get('device_id', None)
     content, device = None, None
 
-    error_message = None
+    error_message, error_code = None, 400
     if content_id is None and device_id is None:
         error_message = '"content_id" and "device_id" are required fields.'
     elif content_id is None:
@@ -40,15 +40,18 @@ def get_content():
             content = Content.query.get_or_404(content_id)
         except Exception as ex:
             error_message = 'No content found against "content_id": {}'.format(content_id)
+            error_code = 404
 
         try:
             device = Device.query.get_or_404(device_id)
         except Exception as ex:
             error_message = 'No device found against "device_id": {}'.format(device_id)
+            error_code = 404
 
         if error_message is None:
             if device.protection_system != content.protection_system:
                 error_message = 'Device "{}" is not authorized to access this content.'.format(device.name)
+                error_code = 401
 
     if error_message is not None:
         data = {
@@ -56,7 +59,7 @@ def get_content():
             'error_message': error_message
         }
 
-        response = (jsonify(data), 401)
+        response = (jsonify(data), error_code)
         return response
 
     ps = ProtectionSystem.query.get_or_404(content.protection_system)
