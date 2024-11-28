@@ -12,7 +12,12 @@
 
 4. Install the packages listed in requirements.txt using the command **pip install -r requirements.txt**
 
-## Use the new App
+## Test the App
+
+1. Run
+     `pytest`
+
+## Use the App
 
 1. *Windows*: 
      In command line (CMD) window, run
