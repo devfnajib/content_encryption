@@ -41,9 +41,9 @@ def create_content():
     encryption_key = generate_encryption_key()
     json_result = encrypt(content=content_payload, encryption_mode=encryption_mode_code, encryption_key=encryption_key)
 
-    new_device = Content(protection_system=protection_system_id, encryption_key=encryption_key,
-                         encrypted_payload=json_result)
-    db.session.add(new_device)
+    new_content = Content(protection_system=protection_system_id, encryption_key=encryption_key,
+                          encrypted_payload=json_result)
+    db.session.add(new_content)
     db.session.commit()
 
     data = {
