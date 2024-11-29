@@ -149,6 +149,9 @@ def update_content(id):
             return response
     else:
         logger.info(f'[ReqID: "{request_id}"]: protection_system_id not provided, updating content only.')
+        protection_system_id = content.protection_system
+        ps = ProtectionSystem.query.get_or_404(protection_system_id)
+        encryption_mode_code = ps.encryption_mode_code
 
     if content_payload is None:
         logger.info(f'[ReqID: "{request_id}"]: Decrypting current content to encrypt it again using new Protection System.')
