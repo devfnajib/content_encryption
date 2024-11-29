@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from app.exceptions import InvalidEncryptionMode
-from app.encryptions import ENCRYPTION_MODE_CODES, validate_input
+from app.encryptions import validate_input
 from app.models import db, ProtectionSystem
 
 
