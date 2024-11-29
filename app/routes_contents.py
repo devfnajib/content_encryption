@@ -3,7 +3,7 @@ from loguru import logger
 import shortuuid
 
 from app.models import db, ProtectionSystem, Content
-from app.encryptions import encrypt, generate_encryption_key
+from app.encryptions import encrypt, decrypt, generate_encryption_key
 
 
 bp = Blueprint('contents', __name__)
@@ -97,6 +97,84 @@ def get_contents():
 
     response = (jsonify(data), 200)
     logger.success(f'[ReqID: "{request_id}"]: Returning all Contents.')
+    return response
+
+
+@bp.route('/contents/<int:id>', methods=['PUT'])
+def update_content(id):
+    request_id = shortuuid.uuid()
+    logger.info(f'[ReqID: "{request_id}"]: PUT Request received at "/contents/{id}"')
+    content = Content.query.get_or_404(id)
+
+    request_payload = request.get_json()
+    protection_system_id = request_payload.get('protection_system_id', None)
+    content_payload = request_payload.get('content_payload', None)
+
+    if protection_system_id is None and content_payload is None:
+        error_message = 'At least one of "protection_system_id" or "content_payload" is required.'
+        logger.error(f'[ReqID: "{request_id}"]: {error_message}')
+        data = {
+            'status': 'Error',
+            'message': error_message
+        }
+        response = (jsonify(data), 400)
+        return response
+    elif protection_system_id == content.protection_system and content_payload is None:
+        message = ('Content not provided and "protection_system_id" is not changed. '
+                   'Not making any change in the content.')
+        data = {
+            'status': 'OK',
+            'message': message
+        }
+        response = (jsonify(data), 200)
+        logger.success(f'[ReqID: "{request_id}"]: {message}')
+        return response
+
+    encryption_mode_code = None
+    if protection_system_id is not None:
+        logger.info(f'[ReqID: "{request_id}"]: Validating protection_system_id.')
+        protection_system_id = int(protection_system_id)
+        try:
+            ps = ProtectionSystem.query.get_or_404(protection_system_id)
+            logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
+            encryption_mode_code = ps.encryption_mode_code
+        except Exception as ex:
+            error_message = 'No Protection System found for "protection_system_id"={}.'.format(protection_system_id)
+            logger.error(f'[ReqID: "{request_id}"]: {error_message}')
+            data = {
+                'status': 'Error',
+                'message': error_message
+            }
+            response = (jsonify(data), 400)
+            return response
+    else:
+        logger.info(f'[ReqID: "{request_id}"]: protection_system_id not provided, updating content only.')
+        protection_system_id = content.protection_system
+        ps = ProtectionSystem.query.get_or_404(protection_system_id)
+        encryption_mode_code = ps.encryption_mode_code
+
+    if content_payload is None:
+        logger.info(f'[ReqID: "{request_id}"]: Decrypting current content to encrypt it again using new Protection System.')
+        ps = ProtectionSystem.query.get_or_404(content.protection_system)
+        content_payload = decrypt(encryption_key=content.encryption_key, encryption_mode=ps.encryption_mode_code,
+                                  encryption_payload=content.encrypted_json)
+
+    encryption_key = generate_encryption_key()
+    logger.info(f'[ReqID: "{request_id}"]: Encrypting content.')
+    json_result = encrypt(content=content_payload, encryption_mode=encryption_mode_code, encryption_key=encryption_key)
+
+    logger.info(f'[ReqID: "{request_id}"]: Content encrypted. Updating content record in DB.')
+    content.protection_system = protection_system_id
+    content.encrypted_json = json_result
+    content.encryption_key = encryption_key
+    db.session.commit()
+
+    data = {
+        'status': 'OK',
+        'message': 'Content updated successfully.'
+    }
+    response = (jsonify(data), 201)
+    logger.success(f'[ReqID: "{request_id}"]: Content updated successfully.')
     return response
 
 
