@@ -1,6 +1,8 @@
+import logging
 import traceback
-
 from flask import Blueprint, request, jsonify
+from loguru import logger
+import shortuuid
 
 from app.models import Content, Device, ProtectionSystem
 from app.encryptions import decrypt
@@ -11,6 +13,7 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
+    logger.info('Request received at "/"')
     data = {
         'status': 'OK'
     }
@@ -21,7 +24,10 @@ def index():
 
 @bp.route('/get_content')
 def get_content():
+    request_id = shortuuid.uuid()
+    logger.info(f'[ReqID: "{request_id}"]: Request received at "/get_content"')
     request_payload = request.args
+    logger.info(f'[ReqID: "{request_id}"]: Request payload: \n{request_payload}')
     content_id = request_payload.get('content_id', None)
     device_id = request_payload.get('device_id', None)
     content, device = None, None
@@ -53,6 +59,7 @@ def get_content():
                 error_code = 401
 
     if error_message is not None:
+        logger.warning(f'[ReqID: "{request_id}"]: {error_message}')
         data = {
             'status': 'Error',
             'error_message': error_message
@@ -67,6 +74,7 @@ def get_content():
         plain_content = decrypt(encryption_key=content.encryption_key, encryption_mode=ps.encryption_mode_code,
                                 encryption_payload=content.encrypted_json)
     except Exception as ex:
+        logger.error(f'[ReqID: "{request_id}"]: Error occurred: {ex.__str__()}')
         traceback.print_exc()
         data = {
             'status': 'Error',
@@ -82,4 +90,5 @@ def get_content():
     }
 
     response = (jsonify(data), 200)
+    logger.success(f'[ReqID: "{request_id}"]: Request processed, returning response.')
     return response
