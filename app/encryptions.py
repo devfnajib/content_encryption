@@ -76,6 +76,17 @@ def classic_encryption(content, encryption_mode, encryption_key):
     return result
 
 
+def openpgp_encryption(content, encryption_mode, encryption_key):
+    data = content.encode('utf-8')
+    cipher = AES.new(encryption_key, encryption_mode)
+    ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+    iv = b64encode(ct_bytes[:AES.block_size + 2]).decode('utf-8')
+    ct = b64encode(ct_bytes[AES.block_size + 2:]).decode('utf-8')
+    result = json.dumps({'iv': iv, 'ciphertext': ct})
+
+    return result
+
+
 def ctr_encryption(content, encryption_mode, encryption_key):
     data = content.encode('utf-8')
     cipher = AES.new(encryption_key, encryption_mode)
@@ -102,8 +113,10 @@ def encrypt(content, encryption_mode, encryption_key):
         return modern_encryption(content=content, encryption_mode=encryption_mode, encryption_key=encryption_key)
     elif encryption_mode == AES.MODE_SIV:
         return siv_encryption(content=content, encryption_mode=encryption_mode, encryption_key=encryption_key)
-    elif encryption_mode in [AES.MODE_CBC, AES.MODE_CFB, AES.MODE_OFB, AES.MODE_OPENPGP]:
+    elif encryption_mode in [AES.MODE_CBC, AES.MODE_CFB, AES.MODE_OFB]:
         return classic_encryption(content=content, encryption_mode=encryption_mode, encryption_key=encryption_key)
+    elif encryption_mode == AES.MODE_OPENPGP:
+        return openpgp_encryption(content=content, encryption_mode=encryption_mode, encryption_key=encryption_key)
     elif encryption_mode == AES.MODE_CTR:
         return ctr_encryption(content=content, encryption_mode=encryption_mode, encryption_key=encryption_key)
     elif encryption_mode == AES.MODE_ECB:
