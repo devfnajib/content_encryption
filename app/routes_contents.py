@@ -29,12 +29,18 @@ def create_content():
     if protection_system_id is not None:
         logger.info(f'[ReqID: "{request_id}"]: Validating protection_system_id.')
         protection_system_id = int(protection_system_id)
-        try:
-            ps = ProtectionSystem.query.get_or_404(protection_system_id)
-            logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
-            encryption_mode_code = ps.encryption_mode_code
-        except Exception as ex:
-            error_message = 'No Protection System found for "protection_system_id"={}.'.format(protection_system_id)
+        ps = db.session.get(ProtectionSystem, protection_system_id)
+        if ps is None:
+            logger.error(f'[ReqID: "{request_id}"]: No Protection System found for "protection_system_id"={protection_system_id}.')
+            data = {
+                'status': 'Error',
+                'message': f'No Protection System found for "protection_system_id"={protection_system_id}.'
+            }
+            response = (jsonify(data), 404)
+            return response
+
+        encryption_mode_code = ps.encryption_mode_code
+        logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
 
     if error_message is not None:
         logger.error(f'[ReqID: "{request_id}"]: {error_message}')
@@ -68,7 +74,16 @@ def create_content():
 def get_content(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: GET Request received at "/contents/{id}"')
-    content = Content.query.get_or_404(id)
+    content = db.session.get(Content, id)
+    if content is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Content found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Content found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     data = {
         'id': content.id,
         'protection_system': content.protection_system,
@@ -104,7 +119,15 @@ def get_contents():
 def update_content(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: PUT Request received at "/contents/{id}"')
-    content = Content.query.get_or_404(id)
+    content = db.session.get(Content, id)
+    if content is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Content found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Content found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
 
     request_payload = request.get_json()
     protection_system_id = request_payload.get('protection_system_id', None)
@@ -130,23 +153,21 @@ def update_content(id):
         logger.success(f'[ReqID: "{request_id}"]: {message}')
         return response
 
-    encryption_mode_code = None
     if protection_system_id is not None:
         logger.info(f'[ReqID: "{request_id}"]: Validating protection_system_id.')
         protection_system_id = int(protection_system_id)
-        try:
-            ps = ProtectionSystem.query.get_or_404(protection_system_id)
-            logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
-            encryption_mode_code = ps.encryption_mode_code
-        except Exception as ex:
-            error_message = 'No Protection System found for "protection_system_id"={}.'.format(protection_system_id)
-            logger.error(f'[ReqID: "{request_id}"]: {error_message}')
+        ps = db.session.get(ProtectionSystem, protection_system_id)
+        if ps is None:
+            logger.error(f'[ReqID: "{request_id}"]: No Protection System found for "protection_system_id"={protection_system_id}.')
             data = {
                 'status': 'Error',
-                'message': error_message
+                'message': f'No Protection System found for "protection_system_id"={protection_system_id}.'
             }
-            response = (jsonify(data), 400)
+            response = (jsonify(data), 404)
             return response
+
+        encryption_mode_code = ps.encryption_mode_code
+        logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
     else:
         logger.info(f'[ReqID: "{request_id}"]: protection_system_id not provided, updating content only.')
         protection_system_id = content.protection_system
@@ -155,7 +176,17 @@ def update_content(id):
 
     if content_payload is None:
         logger.info(f'[ReqID: "{request_id}"]: Decrypting current content to encrypt it again using new Protection System.')
-        ps = ProtectionSystem.query.get_or_404(content.protection_system)
+        ps = db.session.get(ProtectionSystem, content.protection_system)
+        if ps is None:
+            logger.error(
+                f'[ReqID: "{request_id}"]: Related Protection System not found. Protection System id="{content.protection_system}".')
+            data = {
+                'status': 'Error',
+                'message': f'Related Protection System not found. Id="{content.protection_system}".'
+            }
+            response = (jsonify(data), 404)
+            return response
+
         content_payload = decrypt(encryption_key=content.encryption_key, encryption_mode=ps.encryption_mode_code,
                                   encryption_payload=content.encrypted_json)
 
@@ -182,7 +213,16 @@ def update_content(id):
 def delete_content(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: DELETE Request received at "/contents/{id}"')
-    content = Content.query.get_or_404(id)
+    content = db.session.get(Content, id)
+    if content is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Content found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Content found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     db.session.delete(content)
     db.session.commit()
     data = {

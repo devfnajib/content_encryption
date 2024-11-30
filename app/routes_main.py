@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from loguru import logger
 import shortuuid
 
-from app.models import Content, Device, ProtectionSystem
+from app.models import db, Content, Device, ProtectionSystem
 from app.encryptions import decrypt
 
 
@@ -41,21 +41,19 @@ def get_content():
         error_message = '"device_id" is required field.'
 
     if error_message is None:
-        try:
-            content = Content.query.get_or_404(content_id)
-        except Exception as ex:
-            error_message = 'No content found against "content_id": {}'.format(content_id)
+        content = db.session.get(Content, content_id)
+        if content is None:
+            error_message = f'No content found against "content_id": {content_id}.'
             error_code = 404
 
-        try:
-            device = Device.query.get_or_404(device_id)
-        except Exception as ex:
-            error_message = 'No device found against "device_id": {}'.format(device_id)
+        device = db.session.get(Device, device_id)
+        if device is None:
+            error_message = f'No device found against "device_id": {device_id}.'
             error_code = 404
 
         if error_message is None:
             if device.protection_system != content.protection_system:
-                error_message = 'Device "{}" is not authorized to access this content.'.format(device.name)
+                error_message = f'Device "{device.name}" is not authorized to access this content.'
                 error_code = 401
 
     if error_message is not None:
@@ -68,7 +66,15 @@ def get_content():
         response = (jsonify(data), error_code)
         return response
 
-    ps = ProtectionSystem.query.get_or_404(content.protection_system)
+    ps = db.session.get(ProtectionSystem, content.protection_system)
+    if ps is None:
+        logger.error(f'[ReqID: "{request_id}"]: Related Protection System not found. Protection System id="{content.protection_system}".')
+        data = {
+            'status': 'Error',
+            'message': f'Related Protection System not found. Id="{content.protection_system}".'
+        }
+        response = (jsonify(data), 404)
+        return response
 
     try:
         plain_content = decrypt(encryption_key=content.encryption_key, encryption_mode=ps.encryption_mode_code,
