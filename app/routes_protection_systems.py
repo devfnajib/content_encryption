@@ -71,7 +71,16 @@ def create_protection_system():
 def get_protection_system(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: GET Request received at "/protection_systems/{id}"')
-    ps = ProtectionSystem.query.get_or_404(id)
+    ps = db.session.get(ProtectionSystem, id)
+    if ps is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Protection System found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Protection System found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     data = {
         'id': ps.id,
         'name': ps.name,
@@ -107,7 +116,16 @@ def get_protection_systems():
 def update_protection_system(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: PUT Request received at "/protection_systems/{id}"')
-    ps = ProtectionSystem.query.get_or_404(id)
+    ps = db.session.get(ProtectionSystem, id)
+    if ps is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Protection System found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Protection System found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     request_payload = request.get_json()
     name = request_payload.get('name', None)
     encryption_mode = request_payload.get('encryption_mode', None)
@@ -149,7 +167,16 @@ def update_protection_system(id):
 def delete_protection_system(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: DELETE Request received at "/protection_systems/{id}"')
-    ps = ProtectionSystem.query.get_or_404(id)
+    ps = db.session.get(ProtectionSystem, id)
+    if ps is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Protection System found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Protection System found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     db.session.delete(ps)
     db.session.commit()
     data = {

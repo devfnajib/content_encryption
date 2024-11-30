@@ -127,11 +127,13 @@ def modern_decryption(encryption_key, encryption_mode, encryption_payload):
 def siv_decryption(encryption_key, encryption_mode, encryption_payload):
     try:
         b64 = json.loads(encryption_payload)
-        iv = b64decode(b64['iv'])
-        ct = b64decode(b64['ciphertext'])
-        cipher = AES.new(encryption_key, encryption_mode, iv)
-        pt = unpad(cipher.decrypt(ct), AES.block_size)
-        return pt.decode('utf-8')
+        json_k = ['nonce', 'header', 'ciphertext', 'tag']
+        jv = {k: b64decode(b64[k]) for k in json_k}
+        cipher = AES.new(encryption_key, encryption_mode, nonce=jv['nonce'])
+        cipher.update(jv['header'])
+        plaintext = cipher.decrypt_and_verify(jv['ciphertext'], jv['tag'])
+
+        return plaintext.decode('utf-8')
     except (ValueError, KeyError):
         raise Exception('Unable to decrypt.')
 

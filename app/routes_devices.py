@@ -27,11 +27,11 @@ def create_device():
     if protection_system_id is not None:
         logger.info(f'[ReqID: "{request_id}"]: Validating protection_system_id.')
         protection_system_id = int(protection_system_id)
-        try:
-            ProtectionSystem.query.get_or_404(protection_system_id)
+        ps = db.session.get(ProtectionSystem, protection_system_id)
+        if ps is None:
+            error_message = f'No Protection System found for "protection_system_id"={protection_system_id}.'
+        else:
             logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
-        except Exception as ex:
-            error_message = 'No Protection System found for "protection_system_id"={}.'.format(protection_system_id)
 
     if error_message is not None:
         logger.error(f'[ReqID: "{request_id}"]: {error_message}')
@@ -60,7 +60,16 @@ def create_device():
 def get_device(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: GET Request received at "/devices/{id}"')
-    device = Device.query.get_or_404(id)
+    device = db.session.get(Device, id)
+    if device is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Device found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Device found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     data = {
         'id': device.id,
         'name': device.name,
@@ -96,7 +105,15 @@ def get_devices():
 def update_device(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: PUT Request received at "/devices/{id}"')
-    device = Device.query.get_or_404(id)
+    device = db.session.get(Device, id)
+    if device is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Device found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Device found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
 
     request_payload = request.get_json()
     name = request_payload.get('name', None)
@@ -109,11 +126,11 @@ def update_device(id):
     if protection_system_id is not None:
         logger.info(f'[ReqID: "{request_id}"]: Validating protection_system_id.')
         protection_system_id = int(protection_system_id)
-        try:
-            ProtectionSystem.query.get_or_404(protection_system_id)
+        ps = db.session.get(ProtectionSystem, protection_system_id)
+        if ps is None:
+            error_message = f'No Protection System found for "protection_system_id"={protection_system_id}.'
+        else:
             logger.info(f'[ReqID: "{request_id}"]: protection_system_id validated.')
-        except Exception as ex:
-            error_message = 'No Protection System found for "protection_system_id"={}.'.format(protection_system_id)
 
     if error_message is not None:
         logger.error(f'[ReqID: "{request_id}"]: {error_message}.')
@@ -144,7 +161,16 @@ def update_device(id):
 def delete_device(id):
     request_id = shortuuid.uuid()
     logger.info(f'[ReqID: "{request_id}"]: DELETE Request received at "/devices/{id}"')
-    device = Device.query.get_or_404(id)
+    device = db.session.get(Device, id)
+    if device is None:
+        logger.error(f'[ReqID: "{request_id}"]: No such Device found with id="{id}".')
+        data = {
+            'status': 'Error',
+            'message': f'No such Device found with id="{id}".'
+        }
+        response = (jsonify(data), 404)
+        return response
+
     db.session.delete(device)
     db.session.commit()
     data = {
