@@ -5,7 +5,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 
-from app.exceptions import InvalidEncryptionMode, DecryptionException
+from app.exceptions import InvalidEncryptionMode
 
 
 ENCRYPTION_MODE_CODES = {
