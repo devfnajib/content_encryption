@@ -4,13 +4,7 @@ from app import create_application, db
 
 @pytest.fixture(scope='session')
 def app():
-    app = create_application()
-
-    # Connect with an empty Test DB to run tests.
-    app.config.update({
-        "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
-    })
+    app = create_application(test_run=True)
 
     with app.app_context():
         db.create_all()
