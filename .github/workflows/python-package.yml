@@ -29,6 +29,12 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        echo DB_HOST=DB_HOST >> ".env"
+        echo DB_PORT=1234 >> ".env"
+        echo DB_USERNAME=DB_USERNAME >> ".env"
+        echo DB_PASSWORD=DB_PASSWORD >> ".env"
+        echo DB_NAME=DB_NAME >> ".env"
+        echo FLASK_APP=app:create_application >> ".env"
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
