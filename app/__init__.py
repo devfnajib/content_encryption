@@ -10,10 +10,15 @@ from app.routes_contents import bp as contents_bp
 from app.routes_main import bp as main_bp
 
 
-def create_application():
+def create_application(test_run=False):
     logger.info('Creating Flask App.')
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = DB_CONNECTION_STRING
+
+    if test_run:
+        app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///:memory:"
+        app.config['TESTING'] = True
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = DB_CONNECTION_STRING
     db.init_app(app)
     migrate = Migrate(app, db)
     logger.success('DB connection setup.')
